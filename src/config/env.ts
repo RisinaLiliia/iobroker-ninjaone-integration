@@ -24,16 +24,16 @@ export interface AppConfig {
   ninjaOne: SystemConnectionConfig;
 }
 
-function parserPositiveInt (value: string | undefined, defaultValue: number): number {
+function parserPositiveInt(value: string | undefined, defaultValue: number): number {
   if (value === undefined) {
     return defaultValue;
   }
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error(`Invalid positive integer value: ${value}`);
-     }
-   return defaultValue;
-    }
+  }
+  return parsed;
+}
 
 function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
   if (value === undefined) {

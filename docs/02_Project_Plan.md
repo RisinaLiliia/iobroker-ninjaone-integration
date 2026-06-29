@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `Projektplan`
-- Stand: `26.06.2026`
+- Stand: `29.06.2026`
 - Status: `Working Draft`
 
 ## Planungsannahmen
@@ -113,24 +113,42 @@ Abhaengigkeiten:
 
 ### Erledigt
 
-- Projektsetup erstellt
-- Environment-Konfiguration vorbereitet
-- mock-first Architektur umgesetzt
-- Adapter-Schnittstellen fuer `ioBroker` und `NinjaOne` angelegt
-- `DeviceSyncService` fuer Vorschau und Synchronisation implementiert
-- HTTP-Endpunkte fuer technische Tests bereitgestellt
-- Build und TypeScript-Check erfolgreich ausgefuehrt
+- [x] Projektsetup erstellt
+- [x] Environment-Konfiguration vorbereitet
+- [x] mock-first Architektur umgesetzt
+- [x] Adapter-Schnittstellen fuer `ioBroker` und `NinjaOne` angelegt
+- [x] `DeviceSyncService` fuer Vorschau und Synchronisation implementiert
+- [x] HTTP-Endpunkte fuer technische Tests bereitgestellt
+- [x] Build und TypeScript-Check erfolgreich ausgefuehrt
+- [x] initiale API-Recherche fuer `ioBroker` und `NinjaOne` dokumentiert
+- [x] erster lesender `IoBrokerRestClient` fuer `objects` und `states` implementiert
 
-### Naechste Schritte
+### In Arbeit
 
-1. API-Research fuer `ioBroker.rest-api` abschliessen
-2. Relevante ioBroker-Endpunkte fuer `objects` und `states` dokumentieren
-3. API-Research fuer NinjaOne Public API abschliessen
-4. OAuth-Flow fuer NinjaOne dokumentieren
-5. erstes echtes Feldmapping definieren
-6. realen `IoBrokerClient` implementieren
-7. realen `NinjaOneClient` implementieren
-8. End-to-End Test mit Kundenzugangsdaten durchfuehren
+- [ ] vorhandenen `IoBrokerRestClient` gegen ein echtes Kundensystem validieren
+- [ ] relevante Namespaces, `object.type` Werte und State-IDs im Zielsystem dokumentieren
+- [ ] `IOBROKER_BASE_URL` und reale Zugangsdaten fuer die technische Validierung bestaetigen
+
+### Offen
+
+- [ ] API-Research fuer NinjaOne Public API weiter konkretisieren
+- [ ] OAuth-Flow fuer `NinjaOne` technisch verifizieren
+- [ ] erstes belastbares Feldmapping zwischen `ioBroker` und `NinjaOne` definieren
+- [ ] realen `NinjaOneClient` implementieren
+- [ ] Schreibpfad in `NinjaOne` validieren, insbesondere `PATCH /v2/device/{id}/custom-fields`
+- [ ] End-to-End Test mit echten Kundenzugangsdaten durchfuehren
+
+### Statusuebersicht
+
+| Arbeitspaket | Status | Stand | Nachweis |
+|---|---|---|---|
+| Projektsetup und Grundstruktur | erledigt | `29.06.2026` | Projektstruktur, Build-Skripte, HTTP-Startpunkt |
+| Mock-first Integrationskern | erledigt | `29.06.2026` | `MockIoBrokerClient`, `MockNinjaOneClient`, `DeviceSyncService` |
+| API-Research Grundfassung | erledigt | `29.06.2026` | `docs/04_API_Research.md` |
+| Lesender Realadapter fuer `ioBroker` | erledigt | `29.06.2026` | `src/integrations/iobroker/ioBrokerRestClient.ts` |
+| Validierung gegen echtes `ioBroker`-System | in Arbeit | `29.06.2026` | Kundenzugang, Namespace- und State-Pruefung noch offen |
+| Realadapter fuer `NinjaOne` | offen | `-` | noch nicht implementiert |
+| End-to-End Realintegration | offen | `-` | nach Auth- und Mapping-Klaerung |
 
 ## Milestones
 

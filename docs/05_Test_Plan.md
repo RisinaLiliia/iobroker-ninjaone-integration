@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `Testplan`
-- Stand: `26.06.2026`
+- Stand: `29.06.2026`
 - Status: `Initial Draft`
 
 ## Ziel
@@ -117,21 +117,45 @@ Voraussetzung:
 
 ### TC-06 Fehlerbild fuer nicht implementierte Realadapter
 
-- Ziel: erwartbares Verhalten bei Umschalten auf Realmodus dokumentieren
+- Ziel: erwartbares Verhalten des `NinjaOne`-Pfads im Realmodus dokumentieren
 - Vorbedingung: Pflichtkonfiguration gesetzt, Realmodus aktiv
 - Schritte:
-  - `GET /devices` oder `POST /sync` ausfuehren
+  - `POST /sync` ausfuehren
 - Erwartetes Ergebnis:
   - HTTP `500`
-  - technische Meldung, dass reale API-Integration noch nicht implementiert ist
+  - technische Meldung, dass reale `NinjaOne`-API-Integration noch nicht implementiert ist
+
+### TC-07 Lesender Realmodus fuer ioBroker
+
+- Ziel: pruefen, ob der vorhandene `ioBroker`-Realadapter technisch erreichbar ist
+- Vorbedingung:
+  - `MOCK_IOBROKER=false`
+  - gueltige Werte fuer `IOBROKER_BASE_URL`, `IOBROKER_USERNAME`, `IOBROKER_PASSWORD`
+- Schritte:
+  - Service starten
+  - `GET /devices` aufrufen
+- Erwartetes Ergebnis:
+  - bei gueltiger Verbindung HTTP `200`
+  - Rueckgabe einer Liste normalisierter Geraete oder einer leeren Liste bei nicht passendem Filter
+  - keine technische Meldung ueber einen nicht implementierten `ioBroker`-Realadapter
+
+### TC-08 Fehlersicht bei realem ioBroker-Zugriff
+
+- Ziel: technische Fehlerbilder bei falscher `ioBroker`-Konfiguration nachvollziehen
+- Vorbedingung:
+  - `MOCK_IOBROKER=false`
+- Schritte:
+  - absichtlich falsche URL oder falsche Zugangsdaten setzen
+  - `GET /devices` aufrufen
+- Erwartetes Ergebnis:
+  - HTTP `500`
+  - technische Fehlermeldung aus dem `ioBroker`-Request-Kontext, z. B. `401`, `404` oder Verbindungsfehler
 
 ## Geplante Erweiterungen des Testplans
 
 Sobald echte API-Zugaenge vorliegen, werden folgende Testfaelle ergaenzt:
 
 - Token-Abruf bei NinjaOne
-- Connectivity-Test zu ioBroker
-- Lesen realer Objects und States
 - Mapping realer Antworten in das interne Datenmodell
 - Upsert gegen NinjaOne mit Testobjekten
 - Fehlerbehandlung fuer `401`, `404`, `429`, `5xx`
@@ -173,4 +197,5 @@ Die initiale Testphase gilt als erfolgreich abgeschlossen, wenn:
 
 - Automatisierte Tests sind noch nicht implementiert
 - Ein echter Integrationslauf gegen `ioBroker` und `NinjaOne` ist noch offen
+- Der reale Lesezugriff auf `ioBroker` ist implementiert, aber noch nicht gegen das konkrete Kundensystem validiert
 - Postman-Collection oder API-Testskripte werden spaeter als separates Artefakt ergaenzt

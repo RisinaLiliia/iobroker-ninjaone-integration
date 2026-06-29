@@ -4,12 +4,31 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `Technische Architektur`
-- Stand: `26.06.2026`
+- Stand: `29.06.2026`
 - Status: `Working Draft`
 
 ## Architekturziel
 
 Die Architektur soll eine stabile und austauschbare Integrationsschicht zwischen `ioBroker` und `NinjaOne` bereitstellen. Externe APIs sollen nicht direkt in der Business-Logik angesprochen werden. Stattdessen werden Adapter verwendet, die spaeter durch echte API-Implementierungen ersetzt werden koennen.
+
+## Aktueller Architekturstatus
+
+Die Zielarchitektur ist inzwischen teilweise umgesetzt.
+
+Bereits umgesetzt:
+
+- zentrale Konfigurationsschicht ueber `src/config/env.ts`
+- Adapter-Schnittstellen fuer `ioBroker` und `NinjaOne`
+- `mock-first` Integrationskern mit `DeviceSyncService`
+- technische HTTP-Endpunkte fuer Health, Vorschau und Sync
+- lesender Realadapter fuer `ioBroker` auf Basis von `ioBroker.rest-api`
+
+Noch nicht vollstaendig umgesetzt:
+
+- echter schreibender `NinjaOne`-Adapter
+- produktives Feldmapping zwischen Quell- und Zielsystem
+- differenzierte Fehlerklassen und produktionsnahe Logging-Strategie
+- echte End-to-End Validierung gegen beide Kundensysteme
 
 ## System Context
 
@@ -22,6 +41,13 @@ Die Architektur soll eine stabile und austauschbare Integrationsschicht zwischen
 +-----------+        | - HTTP Test Endpoints     |        +-----------+
                      +---------------------------+
 ```
+
+## Implementierungsstatus der externen Anbindungen
+
+| System | Aktueller Modus | Status | Bemerkung |
+|---|---|---|---|
+| `ioBroker` | Mock oder Real | teilimplementiert | Mock vorhanden, Realadapter fuer lesenden REST-Zugriff vorhanden |
+| `NinjaOne` | Mock oder Unsupported | teilimplementiert | Mock vorhanden, Realadapter noch nicht implementiert |
 
 ## Architekturprinzipien
 
@@ -59,10 +85,21 @@ Bereits umgesetzt:
 - `src/integrations/iobroker/*`
 - `src/integrations/ninjaone/*`
 
+Aktueller technischer Stand:
+
+- `ioBroker`:
+  - `MockIoBrokerClient` vorhanden
+  - `IoBrokerRestClient` vorhanden
+  - aktueller Realzugriff liest `objects` und `states` per REST
+- `NinjaOne`:
+  - `MockNinjaOneClient` vorhanden
+  - `UnsupportedNinjaOneClient` signalisiert bewusst, dass die Realintegration noch offen ist
+
 Geplante Erweiterung:
 
-- Ersetzen der Mock-Adapter durch echte API-Clients
+- Ergaenzung des fehlenden `NinjaOne`-Realadapters
 - Kapselung von Authentifizierung, Request-Mapping und Fehlerbehandlung pro Fremdsystem
+- spaetere Absicherung durch Retry-, Timeout- und Logging-Strategien
 
 ### 3. Business Logic Layer
 
@@ -79,6 +116,7 @@ Bereits umgesetzt:
 Geplante Erweiterung:
 
 - Ergaenzung von Validierung, Mapping-Regeln und differenzierter Fehlerbehandlung
+- Trennung zwischen Vorschau, Delta-Ermittlung und produktiver Synchronisation bei wachsendem Umfang
 
 ### 4. HTTP Layer
 
@@ -148,6 +186,47 @@ DeviceSyncService
 MockNinjaOneClient
 ```
 
+### Aktueller Hybrid-/Realzustand
+
+```text
+IoBrokerRestClient
+        |
+        v
+DeviceSyncService
+        |
+        +--> GET /devices funktioniert mit realen ioBroker-Daten
+        |
+        v
+UnsupportedNinjaOneClient
+        |
+        v
+POST /sync im Voll-Realmodus derzeit noch nicht produktiv nutzbar
+```
+
+### Sequence fuer den aktuellen Lesezugriff
+
+```text
+HTTP Client
+   |
+   v
+GET /devices
+   |
+   v
+DeviceSyncService
+   |
+   v
+IoBrokerRestClient
+   |
+   +--> GET /v1/objects?filter=...&type=...
+   |
+   +--> GET /v1/objects?filter=<deviceId>.*&type=state
+   |
+   +--> GET /v1/state/{stateId}
+   |
+   v
+NormalizedDevice[]
+```
+
 ## Projektstruktur
 
 ### Aktueller Stand
@@ -193,6 +272,9 @@ Relevante Parameter:
 - `IOBROKER_BASE_URL`
 - `IOBROKER_USERNAME`
 - `IOBROKER_PASSWORD`
+- `IOBROKER_OBJEKT_FILTER`
+- `IOBROKER_OBJEKT_TYPE`
+- `IOBROKER_REQUEST_TIMEOUT`
 - `NINJAONE_BASE_URL`
 - `NINJAONE_CLIENT_ID`
 - `NINJAONE_CLIENT_SECRET`
@@ -215,6 +297,12 @@ Zweck:
 - technischer Health Check
 - Vorschau auf normalisierte Geraetedaten
 - manuelle Ausloesung eines Synchronisationslaufs
+
+Aktueller Reifegrad:
+
+- `GET /health` ist fuer Mock- und Konfigurationsdiagnose nutzbar
+- `GET /devices` kann bereits fuer die Validierung des `ioBroker`-Realadapters genutzt werden
+- `POST /sync` ist im Voll-Realmodus erst sinnvoll, wenn `NinjaOne` ebenfalls einen Realadapter besitzt
 
 Noch nicht umgesetzt:
 
@@ -268,7 +356,7 @@ Die Architektur ist bewusst so vorbereitet, dass folgende Schritte ohne Grundumb
 
 ## Offene Architekturentscheidungen
 
-- Zugriff auf `ioBroker` per REST API oder ueber einen anderen Adaptermechanismus
+- finaler Zugriff auf `ioBroker` ausschliesslich per REST API oder spaeter ueber alternative Mechanismen
 - konkrete Zielobjekte in `NinjaOne`: `devices`, `assets` oder benutzerdefinierte Felder
 - notwendige Feldzuordnung zwischen Quell- und Zielsystem
 - Umfang der Fehlerbehandlung in Phase 1 vs. Phase 2
