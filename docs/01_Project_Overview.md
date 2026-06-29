@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `Projektuebersicht`
-- Stand: `27.06.2026`
+- Stand: `29.06.2026`
 - Status: `Working Draft`
 
 ## Ziel
@@ -100,6 +100,7 @@ Bereits umgesetzt:
 - zentrale Environment-Konfiguration
 - getrennte Adapter-Struktur fuer `ioBroker` und `NinjaOne`
 - Mock-Adapter fuer `ioBroker` und `NinjaOne`
+- lesender Realadapter fuer `ioBroker` auf Basis von `ioBroker.rest-api`
 - separater Business-Service fuer Geraetevorschau und Synchronisation
 - minimale HTTP-Endpunkte:
   - `GET /health`
@@ -112,10 +113,14 @@ Bereits umgesetzt:
 
 Noch nicht umgesetzt:
 
-- reale HTTP-Anbindung an `ioBroker`
 - OAuth-Authentifizierung und reale API-Anbindung an `NinjaOne`
 - produktives Mapping zwischen ioBroker-Datenpunkten und NinjaOne-Zielobjekten
-- Tests gegen reale Kundensysteme
+- echte End-to-End Validierung gegen reale Kundensysteme
+
+Teilweise umgesetzt:
+
+- reale lesende HTTP-Anbindung an `ioBroker`
+- technische Validierung des `ioBroker`-Realadapters gegen das konkrete Kundensystem steht noch aus
 
 Verifikation:
 

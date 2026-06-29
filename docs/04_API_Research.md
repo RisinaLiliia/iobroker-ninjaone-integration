@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `API Research`
-- Stand: `26.06.2026`
+- Stand: `29.06.2026`
 - Status: `In Progress`
 
 ## Ziel des Dokuments
@@ -28,6 +28,12 @@ Aktuell ist die technische Richtung ausreichend klar, um die Implementierung der
 - fuer `ioBroker` ist `ioBroker.rest-api` der bevorzugte Einstiegspunkt
 - fuer `NinjaOne` ist die Public API v2 mit Bearer-Token-Authentifizierung der relevante Einstiegspunkt
 - fuer beide Systeme ist die fachliche Definition des finalen Feldmappings noch offen
+
+Gleichzeitig hat sich der Projektstand seit der ersten Research-Fassung veraendert:
+
+- ein erster lesender Realadapter fuer `ioBroker` ist bereits im Code vorhanden
+- die Business-Logik verarbeitet reale `ioBroker`-Responses bereits in das interne `NormalizedDevice` Modell
+- fuer `NinjaOne` existiert weiterhin noch kein Realadapter
 
 ## ioBroker
 
@@ -64,18 +70,51 @@ Der dokumentierte Token-Endpunkt ist:
 /oauth/token?grant_type=password&username=<user>&password=<password>&client_id=ioBroker
 ```
 
+### Aktueller Implementierungsstand
+
+Der aktuelle Code verwendet fuer `ioBroker` bereits einen lesenden REST-Adapter:
+
+- Implementierung: `src/integrations/iobroker/ioBrokerRestClient.ts`
+- Aktivierung: `createIoBrokerClient()` schaltet bei `MOCK_IOBROKER=false` auf den Realadapter um
+- Authentifizierung im aktuellen Code: `Basic Authentication`
+- Konfiguration ueber Environment:
+  - `IOBROKER_BASE_URL`
+  - `IOBROKER_USERNAME`
+  - `IOBROKER_PASSWORD`
+  - `IOBROKER_OBJEKT_FILTER`
+  - `IOBROKER_OBJEKT_TYPE`
+  - `IOBROKER_REQUEST_TIMEOUT`
+
+Der Adapter liest aktuell:
+
+1. per `GET /v1/objects?filter=...&type=...` moegliche Geraete
+2. pro Geraet per `GET /v1/objects?filter=<deviceId>.*&type=state` die zugehoerigen State-Objekte
+3. pro State per `GET /v1/state/{stateId}` den aktuellen Wert
+
+Anschliessend wird ein `NormalizedDevice` mit folgenden Kernfeldern aufgebaut:
+
+- `externalId`
+- `name`
+- `health`
+- `ipAddress`
+- `lastSeenAt`
+- `metrics[]`
+- `raw`
+
+Der aktuelle Realadapter ist bewusst lesend ausgelegt. Schreiboperationen nach `ioBroker` sind derzeit nicht Teil der Implementierung.
+
 ### Relevante Endpunkte fuer das Projekt
 
 | Endpoint | Zweck | Status | Implementiert |
 |---|---|---|---|
-| `GET /v1/state/{stateId}` | einzelnen State lesen | recherchiert | `Nein` |
+| `GET /v1/state/{stateId}` | einzelnen State lesen | recherchiert | `Ja` |
 | `PATCH /v1/state/{stateId}` | State schreiben oder aktualisieren | recherchiert | `Nein` |
 | `GET /v1/state/{stateId}/plain` | reinen State-Wert lesen | recherchiert | `Nein` |
 | `GET /v1/state/{stateId}/subscribe` | State-Aenderungen abonnieren | recherchiert | `Nein` |
 | `GET /v1/object/{objectId}` | einzelnes Object lesen | recherchiert | `Nein` |
 | `POST /v1/object/{objectId}` | Object neu anlegen | recherchiert | `Nein` |
 | `PUT /v1/object/{objectId}` | Object aktualisieren oder anlegen | recherchiert | `Nein` |
-| `GET /v1/objects?filter=...` | Liste von Objects per Pattern abrufen | recherchiert | `Nein` |
+| `GET /v1/objects?filter=...` | Liste von Objects per Pattern abrufen | recherchiert | `Ja` |
 | `POST /v1/objects/subscribe` | Object-Updates abonnieren | recherchiert | `Nein` |
 | `GET /v1/command/getStates` | States ueber Socket-Command abrufen | recherchiert | `Nein` |
 | `GET /v1/command/getObject` | Object ueber Socket-Command abrufen | recherchiert | `Nein` |
@@ -89,6 +128,8 @@ Der dokumentierte Token-Endpunkt ist:
 - Die Endpunkte `GET /v1/objects` und `GET /v1/object/{objectId}` sind voraussichtlich der wichtigste Einstieg fuer die Geraetedefinition.
 - Die Endpunkte `GET /v1/state/{stateId}` und ggf. `GET /v1/state/{stateId}/plain` sind fuer Status-, Wert- und Telemetriedaten relevant.
 - Long Polling und Web Hooks sind vorhanden, fuer die erste Projektphase aber nicht zwingend noetig.
+- Der aktuelle Code setzt voraus, dass relevante Geraete ueber `object.type=device` oder einen vergleichbaren Filter identifizierbar sind.
+- Die reale Struktur im Kundensystem ist noch nicht validiert. Der aktuell gesetzte Filter kann je nach Namespace auch `0` Treffer liefern.
 
 ### Erste Integrationsstrategie fuer ioBroker
 
@@ -117,6 +158,7 @@ Authorization: Bearer <token>
 - Welche `object.type` Werte sind relevant: `device`, `channel`, `state` oder eine Kombination?
 - Welche konkreten State-IDs liefern `health`, `displayName`, `ipAddress` und `lastSeenAt`?
 - Reicht Polling fuer Phase 1 oder wird spaeter Subscription benoetigt?
+- Muss fuer bestimmte Kundensysteme statt `type=device` auf `channel` oder direkte `state`-Strukturen gewechselt werden?
 
 ## NinjaOne
 
@@ -172,6 +214,20 @@ Die Core API v2 nennt zwei Sicherheitsmechanismen:
 - `sessionKey` als Cookie-basierter API-Key
 
 Fuer den Integrationsservice wird vorlaeufig `oauth2` als Zielmodell angesetzt.
+
+### Aktueller Implementierungsstand
+
+Fuer `NinjaOne` existiert derzeit noch kein Realadapter.
+
+- bei `MOCK_NINJAONE=true` wird `MockNinjaOneClient` verwendet
+- bei `MOCK_NINJAONE=false` wird aktuell `UnsupportedNinjaOneClient` instanziiert
+- ein realer OAuth-Flow und echte HTTP-Requests gegen `NinjaOne` sind noch nicht im Code vorhanden
+
+Das bedeutet:
+
+- die Public API ist fachlich vorrecherchiert
+- die technische Zielrichtung ist bekannt
+- die echte Implementierung ist weiterhin ein naechster Projektschritt
 
 ### Relevante Endpunkte fuer den Integrationsfall
 
@@ -274,10 +330,11 @@ Content-Type: application/json
 
 ## Empfohlene naechste technische Schritte
 
-1. Einen echten `IoBrokerClient` fuer lesenden Zugriff auf `objects` und `states` implementieren.
-2. Einen technischen Spike fuer den NinjaOne-Auth-Flow bauen.
-3. Testen, ob `PATCH /v2/device/{id}/custom-fields` der praktikabelste Schreibpfad ist.
-4. Erst danach das produktive Feldmapping finalisieren.
+1. Den vorhandenen `IoBrokerRestClient` gegen ein echtes Kundensystem validieren.
+2. Relevante Namespaces, `object.type` Werte und State-IDs im Zielsystem dokumentieren.
+3. Einen technischen Spike fuer den `NinjaOne`-Auth-Flow bauen.
+4. Testen, ob `PATCH /v2/device/{id}/custom-fields` der praktikabelste Schreibpfad ist.
+5. Erst danach das produktive Feldmapping finalisieren.
 
 ## Offene Fragen
 
