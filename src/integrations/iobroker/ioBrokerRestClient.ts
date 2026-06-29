@@ -1,4 +1,4 @@
-import { IoBrorerConfig } from "../../config/env";
+import { IoBrokerConfig } from "../../config/env";
 import { DeviceHealth, DeviceMetric, NormalizedDevice } from "../../domain/device";
 import { IoBrokerClient } from "./IoBrokerClient";
 
@@ -23,7 +23,7 @@ interface IoBrokerStateResponse {
 }
 
 export class IoBrokerRestClient implements IoBrokerClient {
-  constructor(private readonly config: IoBrorerConfig) {}
+  constructor(private readonly config: IoBrokerConfig) {}
 
   async listDevices(): Promise<NormalizedDevice[]> {
     const filter = encodeURIComponent(this.config.objectFilter ?? "*");
@@ -191,7 +191,7 @@ export class IoBrokerRestClient implements IoBrokerClient {
 
   private async fetchJson<T>(path: string): Promise<T> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.requestTimeout ?? 10000);
+    const timeoutId = setTimeout(() => controller.abort(), this.config.requestTimeoutMs ?? 10000);
     try {
       const response = await fetch(
         `${this.config.baseUrl!.replace(/\/+$/, "")}${path}`,
