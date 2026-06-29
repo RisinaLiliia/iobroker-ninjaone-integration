@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `API Research`
-- Stand: `27.06.2026`
+- Stand: `26.06.2026`
 - Status: `In Progress`
 
 ## Ziel des Dokuments

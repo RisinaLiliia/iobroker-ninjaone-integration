@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `Testplan`
-- Stand: `27.06.2026`
+- Stand: `26.06.2026`
 - Status: `Initial Draft`
 
 ## Ziel

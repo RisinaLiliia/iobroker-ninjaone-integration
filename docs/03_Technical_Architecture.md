@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `Technische Architektur`
-- Stand: `27.06.2026`
+- Stand: `26.06.2026`
 - Status: `Working Draft`
 
 ## Architekturziel

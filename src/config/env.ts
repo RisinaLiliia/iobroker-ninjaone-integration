@@ -11,11 +11,29 @@ export interface SystemConnectionConfig {
   useMock: boolean;
 }
 
+export interface IoBrorerConfig
+extends SystemConnectionConfig {
+  objectFilter?: string;
+  objectType?: string;
+  requestTimeout?: number;
+}
+
 export interface AppConfig {
   port: number;
-  ioBroker: SystemConnectionConfig;
+  ioBroker: IoBrorerConfig;
   ninjaOne: SystemConnectionConfig;
 }
+
+function parserPositiveInt (value: string | undefined, defaultValue: number): number {
+  if (value === undefined) {
+    return defaultValue;
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid positive integer value: ${value}`);
+     }
+   return defaultValue;
+    }
 
 function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
   if (value === undefined) {
@@ -63,6 +81,9 @@ export function loadConfig(): AppConfig {
       baseUrl: ioBrokerMock ? readOptionalEnv("IOBROKER_BASE_URL") : readRequiredEnv("IOBROKER_BASE_URL"),
       username: ioBrokerMock ? readOptionalEnv("IOBROKER_USERNAME") : readRequiredEnv("IOBROKER_USERNAME"),
       password: ioBrokerMock ? readOptionalEnv("IOBROKER_PASSWORD") : readRequiredEnv("IOBROKER_PASSWORD"),
+      objectFilter: process.env.IOBROKER_OBJEKT_FILTER ?? "*",
+      objectType: process.env.IOBROKER_OBJEKT_TYPE ??  "device",
+      requestTimeout: parserPositiveInt(process.env.IOBROKER_REQUEST_TIMEOUT, 10000),
     },
     ninjaOne: {
       useMock: ninjaOneMock,

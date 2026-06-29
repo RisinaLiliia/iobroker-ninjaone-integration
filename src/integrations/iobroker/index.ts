@@ -1,12 +1,12 @@
-import { SystemConnectionConfig } from "../../config/env";
+import { IoBrorerConfig, SystemConnectionConfig } from "../../config/env";
 import { IoBrokerClient } from "./IoBrokerClient";
 import { MockIoBrokerClient } from "./MockIoBrokerClient";
-import { UnsupportedIoBrokerClient } from "./UnsupportedIoBrokerClient";
+import { IoBrokerRestClient } from "./ioBrokerRestClient";
 
-export function createIoBrokerClient(config: SystemConnectionConfig): IoBrokerClient {
+export function createIoBrokerClient(config: IoBrorerConfig): IoBrokerClient {
   if (config.useMock) {
     return new MockIoBrokerClient();
   }
 
-  return new UnsupportedIoBrokerClient();
+  return new IoBrokerRestClient(config);
 }
