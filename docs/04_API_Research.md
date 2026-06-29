@@ -81,9 +81,9 @@ Der aktuelle Code verwendet fuer `ioBroker` bereits einen lesenden REST-Adapter:
   - `IOBROKER_BASE_URL`
   - `IOBROKER_USERNAME`
   - `IOBROKER_PASSWORD`
-  - `IOBROKER_OBJEKT_FILTER`
-  - `IOBROKER_OBJEKT_TYPE`
-  - `IOBROKER_REQUEST_TIMEOUT`
+  - `IOBROKER_OBJECT_FILTER`
+  - `IOBROKER_OBJECT_TYPE`
+  - `IOBROKER_REQUEST_TIMEOUT_MS`
 
 Der Adapter liest aktuell:
 
