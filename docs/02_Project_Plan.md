@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `Projektplan`
-- Stand: `29.06.2026`
+- Stand: `30.06.2026`
 - Status: `Working Draft`
 
 ## Planungsannahmen
@@ -122,10 +122,12 @@ Abhaengigkeiten:
 - [x] Build und TypeScript-Check erfolgreich ausgefuehrt
 - [x] initiale API-Recherche fuer `ioBroker` und `NinjaOne` dokumentiert
 - [x] erster lesender `IoBrokerRestClient` fuer `objects` und `states` implementiert
+- [x] vorhandenen `IoBrokerRestClient` gegen ein echtes Kundensystem validieren
+- [x] State-Mapping zwischen  `/v1/objects`  und `/v1/states` für den Realadapter implementiert
+
 
 ### In Arbeit
 
-- [ ] vorhandenen `IoBrokerRestClient` gegen ein echtes Kundensystem validieren
 - [ ] relevante Namespaces, `object.type` Werte und State-IDs im Zielsystem dokumentieren
 - [ ] `IOBROKER_BASE_URL` und reale Zugangsdaten fuer die technische Validierung bestaetigen
 
@@ -142,11 +144,11 @@ Abhaengigkeiten:
 
 | Arbeitspaket | Status | Stand | Nachweis |
 |---|---|---|---|
-| Projektsetup und Grundstruktur | erledigt | `29.06.2026` | Projektstruktur, Build-Skripte, HTTP-Startpunkt |
-| Mock-first Integrationskern | erledigt | `29.06.2026` | `MockIoBrokerClient`, `MockNinjaOneClient`, `DeviceSyncService` |
-| API-Research Grundfassung | erledigt | `29.06.2026` | `docs/04_API_Research.md` |
+| Projektsetup und Grundstruktur | erledigt | `28.06.2026` | Projektstruktur, Build-Skripte, HTTP-Startpunkt |
+| Mock-first Integrationskern | erledigt | `28.06.2026` | `MockIoBrokerClient`, `MockNinjaOneClient`, `DeviceSyncService` |
+| API-Research Grundfassung | erledigt | `28.06.2026` | `docs/04_API_Research.md` |
 | Lesender Realadapter fuer `ioBroker` | erledigt | `29.06.2026` | `src/integrations/iobroker/ioBrokerRestClient.ts` |
-| Validierung gegen echtes `ioBroker`-System | in Arbeit | `29.06.2026` | Kundenzugang, Namespace- und State-Pruefung noch offen |
+| Validierung gegen echtes `ioBroker`-System | erledigt  | `30.06.2026` | Kundenzugang, Namespace- und State-Pruefung  |
 | Realadapter fuer `NinjaOne` | offen | `-` | noch nicht implementiert |
 | End-to-End Realintegration | offen | `-` | nach Auth- und Mapping-Klaerung |
 
