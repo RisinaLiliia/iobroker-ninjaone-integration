@@ -62,8 +62,6 @@ export class IoBrokerRestClient implements IoBrokerClient {
       ),
     ).map(([id, state]) => [id, state?.val] as const);
     
-    
-    console.dir(stateEntries[0], {depth: null});
 
       const stateMap = new Map<string, unknown>(stateEntries);
 
@@ -167,24 +165,6 @@ export class IoBrokerRestClient implements IoBrokerClient {
    return undefined;
   }
 
-  private findState(
-    deviceId: string,
-    stateMap: Map<string, unknown>,
-    suffixes: string[],
-  ): unknown {
-
-    for (const [stateId, state] of stateMap.entries()) {
-      if (
-        suffixes.some(
-          (suffix) =>
-            stateId === `${deviceId}.${suffix}` || stateId.endsWith(`.${suffix}`),
-        )
-      ) {
-        return state;
-      }    
-    }
-    return undefined;
-  }
 
   private readableName(name: string | Record<string, string> | undefined): string | undefined {
     if (!name) {
