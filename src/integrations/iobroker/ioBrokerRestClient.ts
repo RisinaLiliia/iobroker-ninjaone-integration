@@ -1,3 +1,4 @@
+import { stringify } from "node:querystring";
 import { IoBrokerConfig } from "../../config/env";
 import { DeviceHealth, DeviceMetric, NormalizedDevice } from "../../domain/device";
 import { IoBrokerClient } from "./IoBrokerClient";
@@ -28,27 +29,44 @@ export class IoBrokerRestClient implements IoBrokerClient {
   async listDevices(): Promise<NormalizedDevice[]> {
     const filter = encodeURIComponent(this.config.objectFilter ?? "*");
     const type = encodeURIComponent(this.config.objectType ?? "device");
-    const devices = await this.fetchJson<IoBrokerObject[]>(
+    const response = await this.fetchJson<Record<string, IoBrokerObject>>(
       `/v1/objects?filter=${filter}&type=${type}`,
     );
-    return Promise.all(devices.map((device) => this.normalizeDevice(device)));
-  }
+    
+    const devices: IoBrokerObject[] = Object.entries(response).map(([id, device]) => ({
+      ...device,
+      _id: device._id ?? id,
+    })); 
+   
+    return Promise.all(devices.map(device => this.normalizeDevice(device))
+  );
+  }   
+
+    
 
   private async normalizeDevice(device: IoBrokerObject): Promise<NormalizedDevice> {
-    const stateObjects = await this.fetchJson<IoBrokerObject[]>(
+    const stateResponse = await this.fetchJson<Record<string, IoBrokerObject>>(
       `/v1/objects?filter=${encodeURIComponent(`${device._id}.*`)}&type=state`,
     );
 
-    const stateEntries = await Promise.all(
-      stateObjects.map(async (stateObject) => {
-        const state = await this.fetchJson<IoBrokerStateResponse>(
-          `/v1/state/${encodeURIComponent(stateObject._id)}`,
-        );
-        return [stateObject._id, state] as const;
-      }),
-    );
+    const stateObjects: IoBrokerObject[] = Object.entries(stateResponse).map(([id, stateObject]) => ({
+      ...stateObject,
+      _id: stateObject._id ?? id,
+    }))
+    .filter((stateObject) => stateObject.type === "state"); 
 
-    const stateMap = new Map(stateEntries);
+    
+    const stateEntries: Array<readonly [string, unknown]> = Object.entries(
+      await this.fetchJson<Record<string, IoBrokerStateResponse>>(
+        `/v1/states?filter=${encodeURIComponent(`${device._id}.*`)}`,
+      ),
+    ).map(([id, state]) => [id, state?.val] as const);
+    
+    
+    console.dir(stateEntries[0], {depth: null});
+
+      const stateMap = new Map<string, unknown>(stateEntries);
+
     return {
       externalId: device._id,
       name: this.readableName(device.common?.name) ?? device._id,
@@ -64,15 +82,15 @@ export class IoBrokerRestClient implements IoBrokerClient {
     };
   }
 
+ 
   private buildMetrics(
     deviceId: string,
     stateObjects: IoBrokerObject[],
-    stateMap: Map<string, IoBrokerStateResponse>,
+    stateMap: Map<string, unknown>,
   ): DeviceMetric[] {
     return stateObjects
       .map((stateObj): DeviceMetric | null => {
-        const state = stateMap.get(stateObj._id);
-        const value = this.toPrimitive(state?.val);
+        const value = this.toPrimitive(stateMap.get(stateObj._id));
         if (value === undefined) {
           return null;
         }
@@ -87,7 +105,7 @@ export class IoBrokerRestClient implements IoBrokerClient {
 
   private resolveHealth(
     deviceId: string,
-    stateMap: Map<string, IoBrokerStateResponse>,
+    stateMap: Map<string, unknown>,
   ): DeviceHealth {
     const value = this.findValue(deviceId, stateMap, [
       "info.connected",
@@ -115,7 +133,7 @@ export class IoBrokerRestClient implements IoBrokerClient {
 
   private resolveIpAddress(
     deviceId: string,
-    stateMap: Map<string, IoBrokerStateResponse>,
+    stateMap: Map<string, unknown>,
   ): string | undefined {
     const value = this.findValue(deviceId, stateMap, [
       "info.ip",
@@ -127,33 +145,34 @@ export class IoBrokerRestClient implements IoBrokerClient {
   }
 
   private resolveLastSeen(
-    deviceId: string,
-    stateMap: Map<string, IoBrokerStateResponse>,
+    _deviceId: string,
+    _stateMap: Map<string, unknown>,
   ): string | undefined {
-    const state = this.findState(deviceId, stateMap, [
-      "lastSeen",
-      "info.lastSeen",
-      "heartbeat",
-      "alive",
-    ]);
-    const timestamp = state?.lc ?? state?.ts;
-    return typeof timestamp === "number" ? new Date(timestamp).toISOString() : undefined;
+    return undefined;
   }
 
   private findValue(
     deviceId: string,
-    stateMap: Map<string, IoBrokerStateResponse>,
+    stateMap: Map<string, unknown>,
     suffixes: string[],
   ): Primitive | undefined {
-    const state = this.findState(deviceId, stateMap, suffixes);
-    return this.toPrimitive(state?.val);
+    for (const [stateId, value] of stateMap. entries()) {
+      if ( suffixes.some(
+        (suffix) => stateId === `${deviceId}.${suffix}` || stateId.endsWith(`.${suffix}`),
+      )
+    )  {
+      return this.toPrimitive(value);
+    }
+  } 
+   return undefined;
   }
 
   private findState(
     deviceId: string,
-    stateMap: Map<string, IoBrokerStateResponse>,
+    stateMap: Map<string, unknown>,
     suffixes: string[],
-  ): IoBrokerStateResponse | undefined {
+  ): unknown {
+
     for (const [stateId, state] of stateMap.entries()) {
       if (
         suffixes.some(
@@ -162,7 +181,7 @@ export class IoBrokerRestClient implements IoBrokerClient {
         )
       ) {
         return state;
-      }
+      }    
     }
     return undefined;
   }
