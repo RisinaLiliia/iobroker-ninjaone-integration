@@ -109,9 +109,9 @@ Der aktuelle Realadapter ist bewusst lesend ausgelegt. Schreiboperationen nach `
 |---|---|---|---|
 | `GET /v1/state/{stateId}` | einzelnen State lesen | recherchiert | `Ja` |
 | `PATCH /v1/state/{stateId}` | State schreiben oder aktualisieren | recherchiert | `Nein` |
-| `GET /v1/state/{stateId}/plain` | reinen State-Wert lesen | recherchiert | `Nein` |
+| `GET /v1/state/{stateId}/plain` | reinen State-Wert lesen | recherchiert | `Ja` |
 | `GET /v1/state/{stateId}/subscribe` | State-Aenderungen abonnieren | recherchiert | `Nein` |
-| `GET /v1/object/{objectId}` | einzelnes Object lesen | recherchiert | `Nein` |
+| `GET /v1/object/{objectId}` | einzelnes Object lesen | recherchiert | `Ja` |
 | `POST /v1/object/{objectId}` | Object neu anlegen | recherchiert | `Nein` |
 | `PUT /v1/object/{objectId}` | Object aktualisieren oder anlegen | recherchiert | `Nein` |
 | `GET /v1/objects?filter=...` | Liste von Objects per Pattern abrufen | recherchiert | `Ja` |
@@ -151,6 +151,47 @@ Authorization: Bearer <token>
 GET /v1/objects?filter=modbus.0.*&type=device
 Authorization: Bearer <token>
 ```
+
+### Validierte Namenspaces und State-Konverntionen
+
+### Getestete Namenspaces 
+
+- zigbee.*
+- shelly.*
+- deconz.*
+- lovelace.*
+- sourceanalitix.*
+
+### Verwendete State-Suffixe
+
+Health
+
+- alive
+- connented
+- reachable
+- online
+
+IP-Address
+
+- ip
+- ipAddrese
+- localIp
+
+LastSeen
+
+- lastSeen
+- last_seen
+- heartbeat
+
+Metriken 
+
+- power
+- energy
+- voltage 
+- current
+- temperature
+- humidity
+- link_quality
 
 ### Offene Punkte fuer ioBroker
 
