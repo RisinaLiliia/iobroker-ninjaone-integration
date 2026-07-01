@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `Projektuebersicht`
-- Stand: `29.06.2026`
+- Stand: `01.07.2026`
 - Status: `Working Draft`
 
 ## Ziel
@@ -101,6 +101,7 @@ Bereits umgesetzt:
 - getrennte Adapter-Struktur fuer `ioBroker` und `NinjaOne`
 - Mock-Adapter fuer `ioBroker` und `NinjaOne`
 - lesender Realadapter fuer `ioBroker` auf Basis von `ioBroker.rest-api`
+- schreibender Realadapter fuer `NinjaOne` auf Basis der Public API v2
 - separater Business-Service fuer Geraetevorschau und Synchronisation
 - minimale HTTP-Endpunkte:
   - `GET /health`
@@ -113,20 +114,24 @@ Bereits umgesetzt:
 
 Noch nicht umgesetzt:
 
-- OAuth-Authentifizierung und reale API-Anbindung an `NinjaOne`
-- produktives Mapping zwischen ioBroker-Datenpunkten und NinjaOne-Zielobjekten
+- produktives Mapping zwischen ioBroker-Datenpunkten und fachlich freigegebenen NinjaOne-Zielattributen
 - echte End-to-End Validierung gegen reale Kundensysteme
 
 Teilweise umgesetzt:
 
 - reale lesende HTTP-Anbindung an `ioBroker`
-- technische Validierung des `ioBroker`-Realadapters gegen das konkrete Kundensystem steht noch aus
+- reale schreibende HTTP-Anbindung an `NinjaOne`
+- Synchronisationsstrategie fuer bestehende `NinjaOne`-Devices ueber Match + Update
+- technischer Schreibpfad nach `NinjaOne` ueber `userData` und optional `custom-fields`
+- technische Validierung des `NinjaOne`-Realadapters gegen einen echten Tenant steht noch aus
 
 Verifikation:
 
 - `npm run check` erfolgreich
 - `npm run build` erfolgreich
 - Mock-Synchronisation erfolgreich mit `3` verarbeiteten und `3` synchronisierten Geraeten
+- lesender `ioBroker`-Realadapter gegen ein reales Kundensystem technisch nachvollzogen
+- `NinjaOne`-OAuth- und Schreiblogik im Code implementiert, aber noch nicht gegen reale Zugangsdaten validiert
 
 Hinweis:
 

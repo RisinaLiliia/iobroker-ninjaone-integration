@@ -1,12 +1,12 @@
-import { SystemConnectionConfig } from "../../config/env";
+import { NinjaOneConfig } from "../../config/env";
 import { NinjaOneClient } from "./NinjaOneClient";
 import { MockNinjaOneClient } from "./MockNinjaOneClient";
-import { UnsupportedNinjaOneClient } from "./UnsupportedNinjaOneClient";
+import { NinjaOneRestClient } from "./NinjaOneRestClient";
 
-export function createNinjaOneClient(config: SystemConnectionConfig): NinjaOneClient {
+export function createNinjaOneClient(config: NinjaOneConfig): NinjaOneClient {
   if (config.useMock) {
     return new MockNinjaOneClient();
   }
 
-  return new UnsupportedNinjaOneClient();
+  return new NinjaOneRestClient(config);
 }
