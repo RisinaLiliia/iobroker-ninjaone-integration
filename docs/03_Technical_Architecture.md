@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `Technische Architektur`
-- Stand: `29.06.2026`
+- Stand: `01.07.2026`
 - Status: `Working Draft`
 
 ## Architekturziel
@@ -22,10 +22,10 @@ Bereits umgesetzt:
 - `mock-first` Integrationskern mit `DeviceSyncService`
 - technische HTTP-Endpunkte fuer Health, Vorschau und Sync
 - lesender Realadapter fuer `ioBroker` auf Basis von `ioBroker.rest-api`
+- schreibender Realadapter fuer `NinjaOne` auf Basis der Public API v2
 
 Noch nicht vollstaendig umgesetzt:
 
-- echter schreibender `NinjaOne`-Adapter
 - produktives Feldmapping zwischen Quell- und Zielsystem
 - differenzierte Fehlerklassen und produktionsnahe Logging-Strategie
 - echte End-to-End Validierung gegen beide Kundensysteme
@@ -47,7 +47,7 @@ Noch nicht vollstaendig umgesetzt:
 | System | Aktueller Modus | Status | Bemerkung |
 |---|---|---|---|
 | `ioBroker` | Mock oder Real | teilimplementiert | Mock vorhanden, Realadapter fuer lesenden REST-Zugriff vorhanden |
-| `NinjaOne` | Mock oder Unsupported | teilimplementiert | Mock vorhanden, Realadapter noch nicht implementiert |
+| `NinjaOne` | Mock oder Real | teilimplementiert | Mock vorhanden, Realadapter fuer OAuth, Device-Match und Schreibzugriff vorhanden |
 
 ## Architekturprinzipien
 
@@ -93,11 +93,11 @@ Aktueller technischer Stand:
   - aktueller Realzugriff liest `objects` und `states` per REST
 - `NinjaOne`:
   - `MockNinjaOneClient` vorhanden
-  - `UnsupportedNinjaOneClient` signalisiert bewusst, dass die Realintegration noch offen ist
+  - `NinjaOneRestClient` vorhanden
+  - aktueller Realzugriff liest `devices`, holt OAuth-Token und schreibt nach `userData` oder optional `custom-fields`
 
 Geplante Erweiterung:
 
-- Ergaenzung des fehlenden `NinjaOne`-Realadapters
 - Kapselung von Authentifizierung, Request-Mapping und Fehlerbehandlung pro Fremdsystem
 - spaetere Absicherung durch Retry-, Timeout- und Logging-Strategien
 
@@ -197,10 +197,10 @@ DeviceSyncService
         +--> GET /devices funktioniert mit realen ioBroker-Daten
         |
         v
-UnsupportedNinjaOneClient
+NinjaOneRestClient
         |
         v
-POST /sync im Voll-Realmodus derzeit noch nicht produktiv nutzbar
+POST /sync ist technisch moeglich, aber noch nicht gegen einen realen NinjaOne-Tenant validiert
 ```
 
 ### Sequence fuer den aktuellen Lesezugriff
@@ -221,10 +221,38 @@ IoBrokerRestClient
    |
    +--> GET /v1/objects?filter=<deviceId>.*&type=state
    |
-   +--> GET /v1/state/{stateId}
+   +--> GET /v1/states?filter=<deviceId>.*
    |
    v
 NormalizedDevice[]
+```
+
+### Sequence fuer den aktuellen Schreibzugriff nach NinjaOne
+
+```text
+HTTP Client
+   |
+   v
+POST /sync
+   |
+   v
+DeviceSyncService
+   |
+   v
+NinjaOneRestClient
+   |
+   +--> POST /ws/oauth/token
+   |
+   +--> GET /v2/devices?pageSize=...
+   |
+   +--> Match bestehendes NinjaOne-Device
+   |
+   +--> PATCH /v2/device/{id}
+   |
+   +--> optional PATCH /v2/device/{id}/custom-fields
+   |
+   v
+SyncSummary
 ```
 
 ## Projektstruktur
@@ -278,11 +306,22 @@ Relevante Parameter:
 - `NINJAONE_BASE_URL`
 - `NINJAONE_CLIENT_ID`
 - `NINJAONE_CLIENT_SECRET`
+- `NINJAONE_OAUTH_SCOPE`
+- `NINJAONE_REQUEST_TIMEOUT_MS`
+- `NINJAONE_DEVICE_MATCH_FIELDS`
+- `NINJAONE_WRITE_MODE`
+- `NINJAONE_STANDARD_USERDATA_PREFIX`
+- `NINJAONE_CF_EXTERNAL_ID`
+- `NINJAONE_CF_HEALTH`
+- `NINJAONE_CF_IP_ADDRESS`
+- `NINJAONE_CF_LAST_SEEN_AT`
+- `NINJAONE_CF_METRICS_JSON`
 
 Regel:
 
 - im Mock-Modus duerfen API-Werte leer bleiben
 - im Realmodus muessen die benoetigten Variablen vorhanden sein
+- `IOBROKER_USERNAME` und `IOBROKER_PASSWORD` sind optional, falls der REST-Adapter im Kundensystem ohne Basic Auth betrieben wird
 
 ## Schnittstellen nach aussen
 
@@ -302,7 +341,7 @@ Aktueller Reifegrad:
 
 - `GET /health` ist fuer Mock- und Konfigurationsdiagnose nutzbar
 - `GET /devices` kann bereits fuer die Validierung des `ioBroker`-Realadapters genutzt werden
-- `POST /sync` ist im Voll-Realmodus erst sinnvoll, wenn `NinjaOne` ebenfalls einen Realadapter besitzt
+- `POST /sync` kann im Voll-Realmodus bereits den `NinjaOne`-Realadapter ansprechen, benoetigt dafuer aber valide Zielkonfiguration und bestaetigte Match-Regeln
 
 Noch nicht umgesetzt:
 
@@ -357,6 +396,7 @@ Die Architektur ist bewusst so vorbereitet, dass folgende Schritte ohne Grundumb
 ## Offene Architekturentscheidungen
 
 - finaler Zugriff auf `ioBroker` ausschliesslich per REST API oder spaeter ueber alternative Mechanismen
-- konkrete Zielobjekte in `NinjaOne`: `devices`, `assets` oder benutzerdefinierte Felder
+- ob Phase 1 in `NinjaOne` ausschliesslich ueber `userData`, ueber `custom-fields` oder ueber `both` schreiben soll
+- welche `NinjaOne`-Match-Felder pro Kunde die stabilste Zuordnung liefern
 - notwendige Feldzuordnung zwischen Quell- und Zielsystem
 - Umfang der Fehlerbehandlung in Phase 1 vs. Phase 2

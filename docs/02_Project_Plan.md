@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `Projektplan`
-- Stand: `30.06.2026`
+- Stand: `01.07.2026`
 - Status: `Working Draft`
 
 ## Planungsannahmen
@@ -123,21 +123,24 @@ Abhaengigkeiten:
 - [x] initiale API-Recherche fuer `ioBroker` und `NinjaOne` dokumentiert
 - [x] erster lesender `IoBrokerRestClient` fuer `objects` und `states` implementiert
 - [x] vorhandenen `IoBrokerRestClient` gegen ein echtes Kundensystem validieren
-- [x] State-Mapping zwischen  `/v1/objects`  und `/v1/states` für den Realadapter implementiert
+- [x] State-Mapping zwischen `/v1/objects` und `/v1/states` fuer den Realadapter implementiert
+- [x] erster realer `NinjaOneRestClient` implementiert
+- [x] technische Match-Strategie fuer bestehende `NinjaOne`-Devices angelegt
+- [x] Schreibpfade fuer `userData` und optionale `custom-fields` angelegt
 
 
 ### In Arbeit
 
 - [ ] relevante Namespaces, `object.type` Werte und State-IDs im Zielsystem dokumentieren
-- [ ] `IOBROKER_BASE_URL` und reale Zugangsdaten fuer die technische Validierung bestaetigen
+- [ ] reales Ziel-Feldmapping fuer `NinjaOne` kundenspezifisch abstimmen
+- [ ] technische Validierung gegen einen echten `NinjaOne`-Tenant durchfuehren
 
 ### Offen
 
-- [ ] API-Research fuer NinjaOne Public API weiter konkretisieren
-- [ ] OAuth-Flow fuer `NinjaOne` technisch verifizieren
-- [ ] erstes belastbares Feldmapping zwischen `ioBroker` und `NinjaOne` definieren
-- [ ] realen `NinjaOneClient` implementieren
-- [ ] Schreibpfad in `NinjaOne` validieren, insbesondere `PATCH /v2/device/{id}/custom-fields`
+- [ ] API-Research fuer NinjaOne Public API auf Tenant-spezifische Randbedingungen verdichten
+- [ ] OAuth-Flow fuer `NinjaOne` gegen reale Zugangsdaten technisch verifizieren
+- [ ] erstes belastbares Feldmapping zwischen `ioBroker` und `NinjaOne` finalisieren
+- [ ] Schreibpfad in `NinjaOne` fachlich freigeben: `userData`, `custom-fields` oder `both`
 - [ ] End-to-End Test mit echten Kundenzugangsdaten durchfuehren
 
 ### Statusuebersicht
@@ -149,8 +152,8 @@ Abhaengigkeiten:
 | API-Research Grundfassung | erledigt | `28.06.2026` | `docs/04_API_Research.md` |
 | Lesender Realadapter fuer `ioBroker` | erledigt | `29.06.2026` | `src/integrations/iobroker/ioBrokerRestClient.ts` |
 | Validierung gegen echtes `ioBroker`-System | erledigt  | `30.06.2026` | Kundenzugang, Namespace- und State-Pruefung  |
-| Realadapter fuer `NinjaOne` | offen | `-` | noch nicht implementiert |
-| End-to-End Realintegration | offen | `-` | nach Auth- und Mapping-Klaerung |
+| Realadapter fuer `NinjaOne` | teilimplementiert | `01.07.2026` | `src/integrations/ninjaone/NinjaOneRestClient.ts`, noch nicht gegen realen Tenant validiert |
+| End-to-End Realintegration | offen | `-` | nach Auth-, Match- und Mapping-Klaerung |
 
 ## Milestones
 
@@ -235,7 +238,7 @@ Massnahmen:
 - echte `ioBroker`-API analysieren
 - echte `NinjaOne`-API analysieren
 - Mapping-Strategie festlegen
-- Realadapter implementieren
+- Realadapter gegen reale Systeme verifizieren
 
 ## Definition of Done fuer die Initialphase
 

@@ -4,7 +4,7 @@
 
 - Projekt: `ioBroker - NinjaOne Integration`
 - Dokumenttyp: `API Research`
-- Stand: `30.06.2026`
+- Stand: `01.07.2026`
 - Status: `In Progress`
 
 ## Ziel des Dokuments
@@ -33,7 +33,7 @@ Gleichzeitig hat sich der Projektstand seit der ersten Research-Fassung veraende
 
 - ein erster lesender Realadapter fuer `ioBroker` ist bereits im Code vorhanden
 - die Business-Logik verarbeitet reale `ioBroker`-Responses bereits in das interne `NormalizedDevice` Modell
-- fuer `NinjaOne` existiert weiterhin noch kein Realadapter
+- fuer `NinjaOne` existiert inzwischen ein erster Realadapter fuer OAuth, Device-Match und Schreibzugriff
 
 ## ioBroker
 
@@ -76,7 +76,7 @@ Der aktuelle Code verwendet fuer `ioBroker` bereits einen lesenden REST-Adapter:
 
 - Implementierung: `src/integrations/iobroker/ioBrokerRestClient.ts`
 - Aktivierung: `createIoBrokerClient()` schaltet bei `MOCK_IOBROKER=false` auf den Realadapter um
-- Authentifizierung im aktuellen Code: `Basic Authentication`
+- Authentifizierung im aktuellen Code: optional `Basic Authentication`
 - Konfiguration ueber Environment:
   - `IOBROKER_BASE_URL`
   - `IOBROKER_USERNAME`
@@ -89,7 +89,7 @@ Der Adapter liest aktuell:
 
 1. per `GET /v1/objects?filter=...&type=...` moegliche Geraete
 2. pro Geraet per `GET /v1/objects?filter=<deviceId>.*&type=state` die zugehoerigen State-Objekte
-3. pro State per `GET /v1/state/{stateId}` den aktuellen Wert
+3. pro Geraet per `GET /v1/states?filter=<deviceId>.*` die aktuellen State-Werte
 
 Anschliessend wird ein `NormalizedDevice` mit folgenden Kernfeldern aufgebaut:
 
@@ -107,9 +107,10 @@ Der aktuelle Realadapter ist bewusst lesend ausgelegt. Schreiboperationen nach `
 
 | Endpoint | Zweck | Status | Implementiert |
 |---|---|---|---|
-| `GET /v1/state/{stateId}` | einzelnen State lesen | recherchiert | `Ja` |
+| `GET /v1/state/{stateId}` | einzelnen State lesen | recherchiert | `Nein` |
 | `PATCH /v1/state/{stateId}` | State schreiben oder aktualisieren | recherchiert | `Nein` |
-| `GET /v1/state/{stateId}/plain` | reinen State-Wert lesen | recherchiert | `Ja` |
+| `GET /v1/state/{stateId}/plain` | reinen State-Wert lesen | recherchiert | `Nein` |
+| `GET /v1/states?filter=...` | mehrere State-Werte per Pattern lesen | recherchiert | `Ja` |
 | `GET /v1/state/{stateId}/subscribe` | State-Aenderungen abonnieren | recherchiert | `Nein` |
 | `GET /v1/object/{objectId}` | einzelnes Object lesen | recherchiert | `Ja` |
 | `POST /v1/object/{objectId}` | Object neu anlegen | recherchiert | `Nein` |
@@ -126,7 +127,7 @@ Der aktuelle Realadapter ist bewusst lesend ausgelegt. Schreiboperationen nach `
 - `ioBroker` bietet kein offensichtliches einzelnes REST-Konzept "Device" wie ein klassisches RMM.
 - Fachlich wird ein "Geraet" sehr wahrscheinlich aus einer Kombination von `object`-Struktur, `state`-Werten und Namenskonventionen abgeleitet.
 - Die Endpunkte `GET /v1/objects` und `GET /v1/object/{objectId}` sind voraussichtlich der wichtigste Einstieg fuer die Geraetedefinition.
-- Die Endpunkte `GET /v1/state/{stateId}` und ggf. `GET /v1/state/{stateId}/plain` sind fuer Status-, Wert- und Telemetriedaten relevant.
+- Die Kombination `GET /v1/objects` plus `GET /v1/states?filter=...` ist fuer Status-, Wert- und Telemetriedaten im aktuellen Adapter praktikabler als Einzelabrufe pro State.
 - Long Polling und Web Hooks sind vorhanden, fuer die erste Projektphase aber nicht zwingend noetig.
 - Der aktuelle Code setzt voraus, dass relevante Geraete ueber `object.type=device` oder einen vergleichbaren Filter identifizierbar sind.
 - Die reale Struktur im Kundensystem ist noch nicht validiert. Der aktuell gesetzte Filter kann je nach Namespace auch `0` Treffer liefern.
@@ -137,13 +138,13 @@ Empfohlener Start fuer den ersten Realadapter:
 
 1. per `GET /v1/objects?filter=...` relevante Geraetestrukturen identifizieren
 2. pro Geraet die benoetigten States bestimmen
-3. per `GET /v1/state/{stateId}` die fachlich relevanten Werte lesen
+3. per `GET /v1/states?filter=<deviceId>.*` die fachlich relevanten Werte lesen
 4. in das interne `NormalizedDevice` Modell ueberfuehren
 
 ### Beispielhafte Requests
 
 ```http
-GET /v1/state/system.adapter.rest-api.0.memHeapTotal
+GET /v1/states?filter=zigbee.0.00158d0008abcd12.*
 Authorization: Bearer <token>
 ```
 
@@ -152,30 +153,32 @@ GET /v1/objects?filter=modbus.0.*&type=device
 Authorization: Bearer <token>
 ```
 
-### Validierte Namenspaces und State-Konverntionen
+### Validierte Namespaces und State-Konventionen
 
-### Getestete Namenspaces 
+### Getestete Namespaces
 
 - zigbee.*
 - shelly.*
 - deconz.*
 - lovelace.*
-- sourceanalitix.*
+- sourceanalytix.*
 
 ### Verwendete State-Suffixe
 
 Health
 
 - alive
-- connented
+- connected
 - reachable
 - online
+- available
 
-IP-Address
+IP-Adresse
 
 - ip
-- ipAddrese
+- ipAddress
 - localIp
+- network.ip
 
 LastSeen
 
@@ -183,11 +186,11 @@ LastSeen
 - last_seen
 - heartbeat
 
-Metriken 
+Metriken
 
 - power
 - energy
-- voltage 
+- voltage
 - current
 - temperature
 - humidity
@@ -258,34 +261,36 @@ Fuer den Integrationsservice wird vorlaeufig `oauth2` als Zielmodell angesetzt.
 
 ### Aktueller Implementierungsstand
 
-Fuer `NinjaOne` existiert derzeit noch kein Realadapter.
+Fuer `NinjaOne` existiert inzwischen ein erster Realadapter.
 
 - bei `MOCK_NINJAONE=true` wird `MockNinjaOneClient` verwendet
-- bei `MOCK_NINJAONE=false` wird aktuell `UnsupportedNinjaOneClient` instanziiert
-- ein realer OAuth-Flow und echte HTTP-Requests gegen `NinjaOne` sind noch nicht im Code vorhanden
+- bei `MOCK_NINJAONE=false` wird aktuell `NinjaOneRestClient` instanziiert
+- ein realer OAuth-Flow und echte HTTP-Requests gegen `NinjaOne` sind im Code vorhanden
+- die Implementierung nutzt aktuell `client_credentials` gegen `POST /ws/oauth/token`
+- Zielstrategie ist Szenario B: bestehende `NinjaOne`-Devices matchen und anreichern
 
 Das bedeutet:
 
 - die Public API ist fachlich vorrecherchiert
-- die technische Zielrichtung ist bekannt
-- die echte Implementierung ist weiterhin ein naechster Projektschritt
+- die technische Zielrichtung ist im Code umgesetzt
+- die reale Tenant-Validierung und das finale Feldmapping bleiben ein naechster Projektschritt
 
 ### Relevante Endpunkte fuer den Integrationsfall
 
 | Endpoint | Zweck | Status | Implementiert |
 |---|---|---|---|
-| `GET /v2/devices` | Liste von Devices mit Basisdaten | recherchiert | `Nein` |
+| `GET /v2/devices` | Liste von Devices mit Basisdaten | recherchiert | `Ja` |
 | `GET /v2/devices-detailed` | Liste von Devices mit erweiterten Daten | recherchiert | `Nein` |
 | `GET /v2/device/{id}` | Device-Details lesen | recherchiert | `Nein` |
-| `PATCH /v2/device/{id}` | Device-Informationen aktualisieren | recherchiert | `Nein` |
+| `PATCH /v2/device/{id}` | Device-Informationen aktualisieren | recherchiert | `Ja` |
 | `GET /v2/device/{id}/custom-fields` | Device Custom Fields lesen | recherchiert | `Nein` |
-| `PATCH /v2/device/{id}/custom-fields` | Device Custom Fields aktualisieren | recherchiert | `Nein` |
+| `PATCH /v2/device/{id}/custom-fields` | Device Custom Fields aktualisieren | recherchiert | `Ja` |
 | `GET /v2/devices/search` | Devices suchen | recherchiert | `Nein` |
 | `GET /v2/organization/{id}/devices` | Devices einer Organization abrufen | recherchiert | `Nein` |
 | `GET /v2/organizations` | Organization-Liste lesen | recherchiert | `Nein` |
 | `GET /v2/organizations-detailed` | erweiterte Organization-Liste lesen | recherchiert | `Nein` |
 | `GET /v2/groups` | gespeicherte Suchgruppen lesen | recherchiert | `Nein` |
-| `GET /v2/device-custom-fields` | verfuegbare Device-Felddefinitionen lesen | recherchiert | `Nein` |
+| `GET /v2/device-custom-fields` | verfuegbare Device-Felddefinitionen lesen | recherchiert | `Ja` |
 
 ### Fuer das Projekt besonders relevante Beobachtungen
 
@@ -307,21 +312,22 @@ Zusatzbeobachtungen:
 
 - `GET /v2/devices` unterstuetzt `df`, `pageSize` und `after` fuer Filterung und Pagination
 - `GET /v2/devices-detailed` ist wahrscheinlich fuer spaeteres erweitertes Mapping relevant
-- `PATCH /v2/device/{id}` und `PATCH /v2/device/{id}/custom-fields` sind die naheliegendsten Kandidaten fuer eine spaetere Schreibintegration
-- `GET /v2/device-custom-fields` ist wichtig, um Schreibziele fuer benutzerdefinierte Felder vorab zu verstehen
+- `PATCH /v2/device/{id}` eignet sich aktuell fuer das Schreiben technischer Integrationsdaten in `userData`
+- `PATCH /v2/device/{id}/custom-fields` eignet sich fuer vorauskonfigurierte, fachlich kuratierte Zielfelder
+- `GET /v2/device-custom-fields` wird genutzt, um vorhandene beschreibbare Device-Felddefinitionen zu erkennen
+- ohne vorgaengig angelegte Custom Fields ist `standard` ueber `userData` der praktikable Fallback
 
 ### Erste Integrationsstrategie fuer NinjaOne
 
-Empfohlener Start fuer den ersten Realadapter:
+Aktuell umgesetzter Start fuer den ersten Realadapter:
 
-1. Authentifizierungsflow technisch verifizieren
-2. per `GET /v2/devices` pruefen, ob bestaetigte Zielgeraete bereits existieren
-3. per `GET /v2/device-custom-fields` die verfuegbaren Zielfelder analysieren
-4. entscheiden, ob Synchronisation ueber:
-   - `PATCH /v2/device/{id}`
-   - `PATCH /v2/device/{id}/custom-fields`
-   - oder eine Kombination
-   erfolgen soll
+1. `POST /ws/oauth/token` mit `grant_type=client_credentials`
+2. per `GET /v2/devices` bestehende Zielgeraete laden
+3. Match ueber konfigurierbare Felder wie `displayName`, `systemName`, `dnsName`, `netbiosName` oder `uid`
+4. Schreiben ueber:
+   - `PATCH /v2/device/{id}` fuer `userData`
+   - optional `PATCH /v2/device/{id}/custom-fields`
+   - oder eine Kombination davon
 
 ### Beispielhafte Requests
 
@@ -343,10 +349,10 @@ Content-Type: application/json
 
 ### Offene Punkte fuer NinjaOne
 
-- Ist fuer dieses Projekt `authorization_code` oder `client_credentials` der korrekte Flow?
-- Sollen Daten in Standard-Device-Felder oder in `custom-fields` geschrieben werden?
-- Welche NinjaOne-ID wird als Referenz gegen `ioBroker` verwendet: `id`, `uid` oder ein Custom Field?
-- Muss die Zuordnung ueber `organizationId` bzw. `locationId` erfolgen?
+- Ist `client_credentials` im konkreten Kundentenant freigeschaltet und fachlich gewuenscht?
+- Soll Phase 1 nur in `userData`, nur in `custom-fields` oder in `both` schreiben?
+- Welche Match-Felder liefern im Kundensystem die stabilste 1:1-Zuordnung?
+- Muessen Match oder Schreibrechte ueber `organizationId` bzw. `locationId` weiter eingegrenzt werden?
 
 ## Mapping Research
 
@@ -354,13 +360,13 @@ Content-Type: application/json
 
 | Internes Feld | ioBroker Quelle | NinjaOne Ziel | Status |
 |---|---|---|---|
-| `externalId` | offen, wahrscheinlich Object-ID oder technische Geraete-ID | `uid`, `id` oder Custom Field | offen |
-| `name` | Object-Name oder State-Metadaten | `displayName` oder Custom Field | teilgeklaert |
-| `health` | State-Werte oder Connectivity-Zustand | `offline` invertiert oder Custom Field | offen |
+| `externalId` | Object-ID | `userData` oder Custom Field | teilgeklaert |
+| `name` | Object-Name oder State-Metadaten | Match gegen `displayName` / `systemName` / `dnsName` | teilgeklaert |
+| `health` | State-Werte oder Connectivity-Zustand | `userData` oder Custom Field | teilgeklaert |
 | `site` | ioBroker-Struktur, Raum oder Gruppierung | `organization` / `location` / Custom Field | offen |
-| `ipAddress` | State oder Object-Native-Daten | moeglich als Device-Feld oder Custom Field | offen |
-| `lastSeenAt` | State-Timestamp oder Last-Update-Feld | `lastContact` / `lastUpdate` oder Custom Field | teilgeklaert |
-| `metrics[]` | mehrere States pro Geraet | sehr wahrscheinlich Custom Fields oder kein 1:1 Mapping | offen |
+| `ipAddress` | State oder Object-Native-Daten | `userData` oder Custom Field | teilgeklaert |
+| `lastSeenAt` | State-Timestamp oder Last-Update-Feld | `userData` oder Custom Field | teilgeklaert |
+| `metrics[]` | mehrere States pro Geraet | initial als `metricsJson` in `userData`, spaeter selektiv als Custom Fields | teilgeklaert |
 
 ### Aktuelle Mapping-Einschaetzung
 
@@ -371,11 +377,11 @@ Content-Type: application/json
 
 ## Empfohlene naechste technische Schritte
 
-1. Den vorhandenen `IoBrokerRestClient` gegen ein echtes Kundensystem validieren.
-2. Relevante Namespaces, `object.type` Werte und State-IDs im Zielsystem dokumentieren.
-3. Einen technischen Spike fuer den `NinjaOne`-Auth-Flow bauen.
-4. Testen, ob `PATCH /v2/device/{id}/custom-fields` der praktikabelste Schreibpfad ist.
-5. Erst danach das produktive Feldmapping finalisieren.
+1. Relevante Namespaces, `object.type` Werte und State-IDs im Zielsystem dokumentieren.
+2. `NinjaOne`-Authentifizierung und Schreibrechte gegen reale Zugangsdaten verifizieren.
+3. Festlegen, ob Phase 1 `userData`, `custom-fields` oder `both` verwendet.
+4. Erstes fachlich freigegebenes Feldset fuer `NinjaOne` definieren.
+5. Danach das produktive Feldmapping finalisieren.
 
 ## Offene Fragen
 
